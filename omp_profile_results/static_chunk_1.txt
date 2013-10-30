@@ -1,0 +1,142 @@
+----------------------------------------------------------------------
+----     ompP General Information     --------------------------------
+----------------------------------------------------------------------
+Start Date      : Wed Oct 30 00:26:29 2013
+End Date        : Wed Oct 30 00:26:42 2013
+Duration        : 13.08 sec
+Application Name: unknown
+Type of Report  : final
+User Time       : 49.00 sec
+System Time     : 0.25 sec
+Max Threads     : 4
+ompP Version    : 0.8.0
+ompP Build Date : Oct 21 2013 23:22:28
+PAPI Support    : not available
+
+----------------------------------------------------------------------
+----     ompP Region Overview     ------------------------------------
+----------------------------------------------------------------------
+PARALLEL LOOP: 4 regions:
+ * R00002 wolves-squirrels-omp.c (1266-1278)
+ * R00001 wolves-squirrels-omp.c (1230-1244)
+ * R00003 wolves-squirrels-omp.c (1282-1288)
+ * R00004 wolves-squirrels-omp.c (1298-1327)
+
+----------------------------------------------------------------------
+----     ompP Callgraph     ------------------------------------------
+----------------------------------------------------------------------
+
+  Inclusive  (%)   Exclusive  (%)
+  13.08 (100.0%)    0.88 ( 6.75%)           [unknown: 4 threads]
+   4.42 (33.80%)    4.42 (33.80%)  PARLOOP  |-R00002 wolves-squirrels-omp.c (1266-1278)
+   2.52 (19.29%)    2.52 (19.29%)  PARLOOP  |-R00001 wolves-squirrels-omp.c (1230-1244)
+   4.13 (31.58%)    4.13 (31.58%)  PARLOOP  |-R00003 wolves-squirrels-omp.c (1282-1288)
+   1.12 ( 8.58%)    1.12 ( 8.58%)  PARLOOP  +-R00004 wolves-squirrels-omp.c (1298-1327)
+
+----------------------------------------------------------------------
+----     ompP Flat Region Profile (inclusive data)     ---------------
+----------------------------------------------------------------------
+R00002 wolves-squirrels-omp.c (1266-1278) PARALLEL LOOP
+ TID      execT      execC      bodyT   exitBarT   startupT   shutdwnT      taskT
+   0       4.43     100000       3.34       0.54       0.22       0.24       0.00
+   1       4.43     100000       3.53       0.34       0.22       0.25       0.00
+   2       4.43     100000       2.73       1.17       0.20       0.24       0.00
+   3       4.43     100000       3.23       0.62       0.22       0.25       0.00
+ SUM      17.73     400000      12.83       2.67       0.87       0.98       0.00
+
+R00001 wolves-squirrels-omp.c (1230-1244) PARALLEL LOOP
+ TID      execT      execC      bodyT   exitBarT   startupT   shutdwnT      taskT
+   0       2.55     200001       0.89       0.49       0.50       0.47       0.00
+   1       2.55     200001       1.04       0.39       0.47       0.46       0.00
+   2       2.55     200001       0.63       0.79       0.48       0.45       0.00
+   3       2.55     200001       0.39       1.04       0.48       0.45       0.00
+ SUM      10.18     800004       2.95       2.71       1.93       1.84       0.00
+
+R00003 wolves-squirrels-omp.c (1282-1288) PARALLEL LOOP
+ TID      execT      execC      bodyT   exitBarT   startupT   shutdwnT      taskT
+   0       4.13     100000       3.05       0.55       0.22       0.21       0.00
+   1       4.13     100000       3.27       0.32       0.22       0.23       0.00
+   2       4.13     100000       2.52       1.06       0.24       0.22       0.00
+   3       4.13     100000       2.79       0.81       0.22       0.21       0.00
+ SUM      16.51     400000      11.62       2.74       0.91       0.86       0.00
+
+R00004 wolves-squirrels-omp.c (1298-1327) PARALLEL LOOP
+ TID      execT      execC      bodyT   exitBarT   startupT   shutdwnT      taskT
+   0       1.13      99999       0.41       0.23       0.22       0.18       0.00
+   1       1.13      99999       0.44       0.20       0.22       0.19       0.00
+   2       1.13      99999       0.38       0.22       0.23       0.20       0.00
+   3       1.13      99999       0.29       0.34       0.22       0.19       0.00
+ SUM       4.53     399996       1.52       0.98       0.89       0.77       0.00
+
+----------------------------------------------------------------------
+----     ompP Callgraph Region Profiles (incl./excl. data)     -------
+----------------------------------------------------------------------
+
+[*00] unknown
+[=01] R00002 wolves-squirrels-omp.c (1266-1278) PARALLEL LOOP
+ TID      execT      execC    bodyT/I    bodyT/E   exitBarT   startupT   shutdwnT      taskT
+   0       4.42     100000       3.33       3.33       0.54       0.23       0.21       0.00
+   1       4.42     100000       3.52       3.52       0.34       0.23       0.22       0.00
+   2       4.42     100000       2.72       2.72       1.17       0.21       0.21       0.00
+   3       4.42     100000       3.23       3.23       0.63       0.23       0.23       0.00
+ SUM      17.69     400000      12.81      12.81       2.68       0.90       0.87       0.00
+
+[*00] unknown
+[=01] R00001 wolves-squirrels-omp.c (1230-1244) PARALLEL LOOP
+ TID      execT      execC    bodyT/I    bodyT/E   exitBarT   startupT   shutdwnT      taskT
+   0       2.52     200001       0.87       0.87       0.50       0.52       0.42       0.00
+   1       2.52     200001       1.03       1.03       0.39       0.49       0.41       0.00
+   2       2.52     200001       0.62       0.62       0.80       0.49       0.40       0.00
+   3       2.52     200001       0.37       0.37       1.05       0.49       0.39       0.00
+ SUM      10.10     800004       2.89       2.89       2.74       1.99       1.61       0.00
+
+[*00] unknown
+[=01] R00003 wolves-squirrels-omp.c (1282-1288) PARALLEL LOOP
+ TID      execT      execC    bodyT/I    bodyT/E   exitBarT   startupT   shutdwnT      taskT
+   0       4.13     100000       3.04       3.04       0.56       0.25       0.18       0.00
+   1       4.13     100000       3.26       3.26       0.32       0.25       0.20       0.00
+   2       4.13     100000       2.51       2.51       1.06       0.26       0.19       0.00
+   3       4.13     100000       2.78       2.78       0.81       0.25       0.18       0.00
+ SUM      16.53     400000      11.60      11.60       2.75       1.00       0.74       0.00
+
+[*00] unknown
+[=01] R00004 wolves-squirrels-omp.c (1298-1327) PARALLEL LOOP
+ TID      execT      execC    bodyT/I    bodyT/E   exitBarT   startupT   shutdwnT      taskT
+   0       1.12      99999       0.41       0.41       0.22       0.22       0.16       0.00
+   1       1.12      99999       0.43       0.43       0.20       0.22       0.16       0.00
+   2       1.12      99999       0.38       0.38       0.22       0.24       0.18       0.00
+   3       1.12      99999       0.28       0.28       0.34       0.22       0.16       0.00
+ SUM       4.49     399996       1.50       1.50       0.99       0.91       0.66       0.00
+
+
+----------------------------------------------------------------------
+----     ompP Overhead Analysis Report     ---------------------------
+----------------------------------------------------------------------
+Total runtime (wallclock)   : 13.08 sec [4 threads]
+Number of parallel regions  : 4
+Parallel coverage           : 12.24 sec (93.54%)
+
+Parallel regions sorted by wallclock time:
+            Type                            Location      Wallclock (%) 
+R00002   PARLOOP  wolves-squirrels-omp.c (1266-1278)       4.43 (33.88) 
+R00003   PARLOOP  wolves-squirrels-omp.c (1282-1288)       4.13 (31.54) 
+R00001   PARLOOP  wolves-squirrels-omp.c (1230-1244)       2.55 (19.46) 
+R00004   PARLOOP  wolves-squirrels-omp.c (1298-1327)       1.13 ( 8.66) 
+                                                 SUM      12.24 (93.54) 
+
+Overheads wrt. each individual parallel region:
+          Total        Ovhds (%)  =   Synch  (%)  +  Imbal   (%)  +   Limpar (%)   +    Mgmt (%)
+R00002    17.73     4.44 (25.06)    0.00 ( 0.00)    2.68 (15.09)    0.00 ( 0.00)    1.77 ( 9.97)
+R00003    16.51     4.49 (27.21)    0.00 ( 0.00)    2.75 (16.63)    0.00 ( 0.00)    1.75 (10.58)
+R00001    10.18     6.34 (62.24)    0.00 ( 0.00)    2.74 (26.89)    0.00 ( 0.00)    3.60 (35.35)
+R00004     4.53     2.56 (56.48)    0.00 ( 0.00)    0.99 (21.84)    0.00 ( 0.00)    1.57 (34.64)
+
+Overheads wrt. whole program:
+          Total        Ovhds (%)  =   Synch  (%)  +  Imbal   (%)  +   Limpar (%)   +    Mgmt (%)
+R00001    10.18     6.34 (12.11)    0.00 ( 0.00)    2.74 ( 5.23)    0.00 ( 0.00)    3.60 ( 6.88)
+R00003    16.51     4.49 ( 8.58)    0.00 ( 0.00)    2.75 ( 5.25)    0.00 ( 0.00)    1.75 ( 3.34)
+R00002    17.73     4.44 ( 8.49)    0.00 ( 0.00)    2.68 ( 5.11)    0.00 ( 0.00)    1.77 ( 3.38)
+R00004     4.53     2.56 ( 4.89)    0.00 ( 0.00)    0.99 ( 1.89)    0.00 ( 0.00)    1.57 ( 3.00)
+   SUM    48.96    17.83 (34.07)    0.00 ( 0.00)    9.15 (17.48)    0.00 ( 0.00)    8.69 (16.59)
+
+
