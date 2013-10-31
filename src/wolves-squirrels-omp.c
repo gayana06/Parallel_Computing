@@ -1382,7 +1382,8 @@ void fnProcessWorld() {
 			for (l_iRow = 0; l_iRow < g_GridSize; ++l_iRow) {
 				for (l_iColumn = 0; l_iColumn < g_GridSize; ++l_iColumn) {
 					world *l_ptWorld = *(pt_SourceWorld + l_iRow) + l_iColumn;
-					if (l_ptWorld->type == 1) {
+					switch (l_ptWorld->type) {
+					case 1: {
 						if (l_ptWorld->breeding_period != 0)
 							--l_ptWorld->breeding_period;
 						--l_ptWorld->starvation_period;
@@ -1393,12 +1394,18 @@ void fnProcessWorld() {
 							l_ptWorld->breeding_period = 0;
 
 						}
-					} else if ((l_ptWorld->type == 2)
-							|| (l_ptWorld->type == 5)) {
+					}
+						break;
+					case 2:
+					case 5: {
 						if (l_ptWorld->breeding_period != 0)
 							--l_ptWorld->breeding_period;
 					}
+						break;
+					default:
+						break;
 
+					}
 				}
 			}
 		}
