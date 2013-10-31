@@ -17,7 +17,7 @@
 #define PRINT_NORMAL
 //#define PRINT_CORDINATE
 //#define PRINT_DEATIL
-///#define PRINT_DEBUG
+#define DEFINE_VAR
 
 #define WOLF "w"
 #define SQUIRREL "s"
@@ -41,8 +41,10 @@ typedef struct world {
 world **pt_SourceWorld;
 world **pt_DestinationWorld;
 FILE *gf_DumpFile;
-void fnDumpTheOutput(int *iGen, world **ptPrintWorld) {
-	gf_DumpFile = fopen("World.txt", "a+");
+void fnDumpTheOutput(world **ptPrintWorld, int *pGeneration) {
+	char zFilebuf[256];
+	snprintf(zFilebuf, sizeof(zFilebuf), "World_%d.out", *pGeneration);
+	gf_DumpFile = fopen(zFilebuf, "a+");
 	if (gf_DumpFile == NULL) {
 		printf("Unable to open the file.\n");
 		exit(1);
@@ -58,24 +60,24 @@ void fnDumpTheOutput(int *iGen, world **ptPrintWorld) {
 			l_ptWorld = *(ptPrintWorld + row) + columns;
 			switch (l_ptWorld->type) {
 			case 1: {
-				fprintf(gf_DumpFile, "g%d - %d %d w \n", *iGen, row, columns);
+				fprintf(gf_DumpFile, "%d %d w \n", row, columns);
 
 			}
 				break;
 			case 2: {
-				fprintf(gf_DumpFile, "g%d - %d %d s \n", *iGen, row, columns);
+				fprintf(gf_DumpFile, "%d %d s \n", row, columns);
 			}
 				break;
 			case 3: {
-				fprintf(gf_DumpFile, "g%d - %d %d t \n", *iGen, row, columns);
+				fprintf(gf_DumpFile, "%d %d t \n", row, columns);
 			}
 				break;
 			case 4: {
-				fprintf(gf_DumpFile, "g%d - %d %d x\n", *iGen, row, columns);
+				fprintf(gf_DumpFile, "%d %d x\n", row, columns);
 			}
 				break;
 			case 5: {
-				fprintf(gf_DumpFile, "g%d - %d %d $ \n", *iGen, row, columns);
+				fprintf(gf_DumpFile, "%d %d $ \n", row, columns);
 			}
 				break;
 
@@ -88,9 +90,11 @@ void fnDumpTheOutput(int *iGen, world **ptPrintWorld) {
 
 }
 void fnPrintWorld(world **ptPrintWorld) {
+#ifdef DEFINE_VAR
 	int row;
 	int columns;
 	world *l_ptWorld;
+#endif
 #ifdef PRINT_DEATIL
 	for (row = 0; row < g_GridSize; row++) {
 
@@ -138,25 +142,25 @@ void fnPrintWorld(world **ptPrintWorld) {
 		for (columns = 0; columns < g_GridSize; columns++) {
 			l_ptWorld = *(ptPrintWorld + row) + columns;
 			switch (l_ptWorld->type) {
-			case 1: {
-				printf("(%d,%d) - w \n", row, columns);
-			}
+				case 1: {
+					printf("%d %d w \n", row, columns);
+				}
 				break;
-			case 2: {
-				printf("(%d,%d) - s \n", row, columns);
-			}
+				case 2: {
+					printf("%d %d s \n", row, columns);
+				}
 				break;
-			case 3: {
-				printf("(%d,%d) - t \n", row, columns);
-			}
+				case 3: {
+					printf("%d %d t \n", row, columns);
+				}
 				break;
-			case 4: {
-				printf("(%d,%d) - i \n", row, columns);
-			}
+				case 4: {
+					printf("%d %d i \n", row, columns);
+				}
 				break;
-			case 5: {
-				printf("(%d,%d) -$i \n", row, columns);
-			}
+				case 5: {
+					printf("%d %d $ \n", row, columns);
+				}
 				break;
 
 			}
@@ -200,7 +204,10 @@ void fnPrintWorld(world **ptPrintWorld) {
 
 #endif
 }
-
+/* this function gets actual row ,actual column and adjacent row ,adjacent column and map as input .
+ * it will give the bool as result ,saying , whether any of the adjacent cell has chance to move to actual cell one by one
+ * this is result then will be used to determine cell movements
+ */
 bool fnPossibleMovementToSameCell(int *i_Row, int *i_Column, int *_iActualRow,
 		int *_iActualColumn, world **pt_Whichworld) {
 
@@ -440,10 +447,6 @@ bool fnPossibleMovementToSameCell(int *i_Row, int *i_Column, int *_iActualRow,
 		if (l_iNumberofPossiblemovement != 0) {
 			int l_iCValue = *i_Row * g_GridSize + *i_Column;
 			int l_imodval = l_iCValue % l_iNumberofPossiblemovement;
-#ifdef DEBUG
-			printf(" possible movements : %d-- mod value- %d -row %d|col =%d\n",
-					l_iNumberofPossiblemovement, l_imodval, *i_Row, *i_Column);
-#endif
 			if (l_iupval == l_imodval) {
 
 				if (*_iActualRow == *ptTempRow - 1
@@ -483,7 +486,10 @@ bool fnPossibleMovementToSameCell(int *i_Row, int *i_Column, int *_iActualRow,
 		return false;
 
 }
-
+/* in order to avoid the complexity in the main update function, this function would really helpful to separate
+ * the complex cases in the caller function, basically this function updates mirror world according to previous function
+ * result.
+ */
 void fnupdateCell(int *_iBreedingPeriod, int *_iStarvationPeriod, int *_iType,
 		int *i_Row, int *i_Column, int *_iUpdateRow, int *_iUpdateColumn,
 		world **pt_srcWorld, world **pt_DstWorld) {
@@ -555,6 +561,60 @@ void fnupdateCell(int *_iBreedingPeriod, int *_iStarvationPeriod, int *_iType,
 	}
 
 }
+/* if we are processing empty cell, then wolf can come to that cell, there is maximum four possible chance to come
+ * each of the possible chance will be analyzed by caller function and result will be passed here to update.
+ * if any of the wolf breeds before come to an empty cell, then we have to update corresponding cell as well.*/
+void fnSingleUpdatetoCell(world **ptSource, world **ptDst, int *i_Row,
+		int *i_Column) {
+
+	world *pt_TempWorld;
+	world *pt_TempDstWorld;
+	pt_TempWorld = *(ptSource + *i_Row) + *i_Column;
+	pt_TempDstWorld = *(ptDst + *i_Row) + *i_Column;
+
+	if (pt_TempWorld->breeding_period == 0) {
+
+		pt_TempDstWorld->type = 1;
+		pt_TempDstWorld->starvation_period = l_iWolfSP;
+		pt_TempDstWorld->breeding_period = l_iWolfBP;
+		pt_TempDstWorld->isUpdated = true;
+	}
+	pt_TempDstWorld->isUpdated = true;
+
+}
+
+/* Tree processing is slightly different than other process, even though basic processing concepts are same, the tpye we updating
+ * is differ from wolf processing, that is why we have created separate function to handle this .
+ */
+void fnTreeCellUpdate(world **ptSource, world **ptDst, int *i_Row,
+		int *i_Column, int *iActualRow, int *iActualColumn) {
+
+	world *ptTempWorld = *(ptSource + *i_Row) + *i_Column;
+	world *ptDestWorld = *(ptDst + *i_Row) + *i_Column;
+	if (ptTempWorld->breeding_period == 0) {
+		if (ptTempWorld->type == 5)
+			ptDestWorld->type = 5;
+		else
+			ptDestWorld->type = 2;
+		ptDestWorld->starvation_period = 0;
+		ptDestWorld->breeding_period = l_iSquirrelBP;
+		ptDestWorld->isUpdated = true;
+	} else {
+		(*(ptDst + *iActualRow) + *iActualColumn)->type = 5;
+
+		(*(ptDst + *iActualRow) + *iActualColumn)->starvation_period = 0;
+		(*(ptDst + *iActualRow) + *iActualColumn)->breeding_period =
+				l_iSquirrelBP;
+		(*(ptDst + *iActualRow) + *iActualColumn)->isUpdated = true;
+
+	}
+	ptDestWorld->isUpdated = true;
+
+}
+
+/* This is the heart function of whole program, basically this function will be receiving the cell and columns it want to process
+ * and check neighboring cells possibilities , according to neighboring cells result, then every updates will be happened to mirror world
+ */
 void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 	world *l_ptWorld = *(ptSource + *i_Row) + *i_Column;
@@ -562,7 +622,6 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 	int l_nextCell = 0;
 	if (l_ptWorld->type == 0)
 		isConflict = true;
-	/*-----------------------------------------------------------------------------------------------------*/
 	if (isConflict) {
 
 		int l_iWolfType = 1;
@@ -600,16 +659,9 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 		int *ptTempRow = i_Row;
 		int *ptTempColumn = i_Column;
 		world *ptTemp;
-#ifdef DEBUG
-		printf("Processing conflict cell : row - %d | column = %d \n", *i_Row,
-				*i_Column);
-#endif
 		l_nextCell = *i_Column + 1;
 		if (fnPossibleMovementToSameCell(i_Row, &l_nextCell, i_Row, i_Column,
 				ptSource)) {
-#ifdef DEBUG
-			printf("Processing i_Column+1 section \n");
-#endif
 			ptTemp = *(ptSource + *ptTempRow) + *ptTempColumn + 1;
 			if (ptTemp->type == 1) {
 				l_iRightStarvationPeriod = ptTemp->starvation_period;
@@ -630,9 +682,6 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 		l_nextCell = *i_Column - 1;
 		if (fnPossibleMovementToSameCell(i_Row, &l_nextCell, i_Row, i_Column,
 				ptSource)) {
-#ifdef DEBUG
-			printf("Processing Column -1 section \n");
-#endif
 			ptTemp = *(ptSource + *ptTempRow) + *ptTempColumn - 1;
 			if (ptTemp->type == 1) {
 				l_iLeftStarvationPeriod = ptTemp->starvation_period;
@@ -653,9 +702,7 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 		l_nextCell = *i_Row + 1;
 		if (fnPossibleMovementToSameCell(&l_nextCell, i_Column, i_Row, i_Column,
 				ptSource)) {
-#ifdef DEBUG
-			printf("Processing i_Row+1 section \n");
-#endif
+
 			ptTemp = *(ptSource + *ptTempRow + 1) + *ptTempColumn;
 			if (ptTemp->type == 1) {
 				l_iDownStartvationPeriod = ptTemp->starvation_period;
@@ -676,9 +723,7 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 		l_nextCell = *i_Row - 1;
 		if (fnPossibleMovementToSameCell(&l_nextCell, i_Column, i_Row, i_Column,
 				ptSource)) {
-#ifdef DEBUG
-			printf("Processing i_Row-1 section \n");
-#endif
+
 			ptTemp = *(ptSource + *ptTempRow - 1) + *ptTempColumn;
 			if (ptTemp->type == 1) {
 				l_iUpStarvationPeriod = ptTemp->starvation_period;
@@ -784,87 +829,61 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 					l_iMaxBreading = MAX(l_interMaxBread1,l_interMaxBread2);
 				}
 
-				ptDst[*i_Row][*i_Column].type = 1;
-				ptDst[*i_Row][*i_Column].isUpdated = true;
+				(*(ptDst + *i_Row) + *i_Column)->type = 1;
+				(*(ptDst + *i_Row) + *i_Column)->isUpdated = true;
 				if (l_iSqCounter > 0) // so there are squirrel , so we need to set final wolf's starvation period as initial starvation period
 						{
-					ptDst[*i_Row][*i_Column].starvation_period = l_iWolfSP;
+					(*(ptDst + *i_Row) + *i_Column)->starvation_period =
+							l_iWolfSP;
 				} else
-					ptDst[*i_Row][*i_Column].starvation_period =
+					(*(ptDst + *i_Row) + *i_Column)->starvation_period =
 							l_iMaxStarvation;
 				if (bIsStarvationEqual) {
 
-					ptDst[*i_Row][*i_Column].breeding_period = l_iMaxBreading;
+					(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+							l_iMaxBreading;
 				} else {
 					if (l_iMaxStarvation == l_iLeftStarvationPeriod) {
-						ptDst[*i_Row][*i_Column].breeding_period =
-								ptSource[*i_Row][*i_Column - 1].breeding_period;
+						(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+								(*(ptSource + *i_Row) + *i_Column - 1)->breeding_period;
 					} else if (l_iMaxStarvation == l_iRightStarvationPeriod) {
-						ptDst[*i_Row][*i_Column].breeding_period =
-								ptSource[*i_Row][*i_Column + 1].breeding_period;
+						(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+								(*(ptSource + *i_Row) + *i_Column + 1)->breeding_period;
 
 					} else if (l_iMaxStarvation == l_iDownStartvationPeriod) {
-						ptDst[*i_Row][*i_Column].breeding_period =
-								ptSource[*i_Row + 1][*i_Column].breeding_period;
+						(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+								(*(ptSource + *i_Row + 1) + *i_Column)->breeding_period;
 
 					} else {
-						ptDst[*i_Row][*i_Column].breeding_period =
-								ptSource[*i_Row - 1][*i_Column].breeding_period;
+						(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+								(*(ptSource + *i_Row - 1) + *i_Column)->breeding_period;
 					}
 
 				}
-				world *pt_TempWorld;
-				world *pt_TempDstWorld;
+
 				if (l_bUperWolfchance) {
-					pt_TempWorld = *(ptSource + *i_Row - 1) + *i_Column;
-					pt_TempDstWorld = *(ptDst + *i_Row - 1) + *i_Column;
+					l_nextCell = *i_Row - 1;
+					fnSingleUpdatetoCell(ptSource, ptDst, &l_nextCell,
+							i_Column);
 
-					if (pt_TempWorld->breeding_period == 0) {
-
-						pt_TempDstWorld->type = 1;
-						pt_TempDstWorld->starvation_period = l_iWolfSP;
-						pt_TempDstWorld->breeding_period = l_iWolfBP;
-						pt_TempDstWorld->isUpdated = true;
-					}
-					pt_TempDstWorld->isUpdated = true;
 				}
 				if (l_bRightWolfchance) {
-					pt_TempWorld = *(pt_SourceWorld + *i_Row) + *i_Column + 1;
-					pt_TempDstWorld = *(ptDst + *i_Row) + *i_Column + 1;
-					if (pt_TempWorld->breeding_period == 0) {
+					l_nextCell = *i_Column + 1;
+					fnSingleUpdatetoCell(ptSource, ptDst, i_Row, &l_nextCell);
 
-						pt_TempDstWorld->type = 1;
-						pt_TempDstWorld->starvation_period = l_iWolfSP;
-						pt_TempDstWorld->breeding_period = l_iWolfBP;
-						pt_TempDstWorld->isUpdated = true;
-					}
-					pt_TempDstWorld->isUpdated = true;
 				}
 
 				if (l_bDownWolfchance) {
-					pt_TempWorld = *(pt_SourceWorld + *i_Row + 1) + *i_Column;
-					pt_TempDstWorld = *(ptDst + *i_Row + 1) + *i_Column;
-					if (pt_TempWorld->breeding_period == 0) {
+					l_nextCell = *i_Row + 1;
+					fnSingleUpdatetoCell(ptSource, ptDst, &l_nextCell,
+							i_Column);
 
-						pt_TempDstWorld->type = 1;
-						pt_TempDstWorld->starvation_period = l_iWolfSP;
-						pt_TempDstWorld->breeding_period = l_iWolfBP;
-						pt_TempDstWorld->isUpdated = true;
-					}
-					pt_TempDstWorld->isUpdated = true;
 				}
 
 				if (l_bLeftWolfchance) {
-					pt_TempWorld = *(pt_SourceWorld + *i_Row) + *i_Column - 1;
-					pt_TempDstWorld = *(ptDst + *i_Row) + *i_Column - 1;
-					if (pt_TempWorld->breeding_period == 0) {
+					l_nextCell = *i_Column - 1;
+					fnSingleUpdatetoCell(ptSource, ptDst, i_Row, &l_nextCell);
 
-						pt_TempDstWorld->type = 1;
-						pt_TempDstWorld->starvation_period = l_iWolfSP;
-						pt_TempDstWorld->breeding_period = l_iWolfBP;
-						pt_TempDstWorld->isUpdated = true;
-					}
-					pt_TempDstWorld->isUpdated = true;
 				}
 
 			} else if ((l_iwolfCounter == 0) && l_iSqCounter > 0) {
@@ -880,19 +899,8 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 				MAX(l_iDownBreadingPeriodS,l_iUpBreadingPeriodS);
 				l_iMaxBreading = MAX(l_interMaxBread1,l_interMaxBread2);
 
-				/*pt_SourceWord[*i_Row][*i_Column].type = 2;
-				 pt_SourceWord[*i_Row][*i_Column].starvation_period = 0;
-
-				 pt_SourceWord[*i_Row][*i_Column].breeding_period =
-				 l_iMaxBreading;*/
-
 				if (l_bUperSqchance) {
 
-					/*pt_SourceWorld[*i_Row][*i_Column].type = 2;
-					 pt_SourceWorld[*i_Row][*i_Column].starvation_period = 0;
-
-					 pt_SourceWorld[*i_Row][*i_Column].breeding_period =
-					 l_iMaxBreading;*/
 					l_nextCell = *i_Row - 1;
 					fnupdateCell(&l_iMaxBreading, &l_SquirrelType,
 							&pt_SourceWorld[*i_Row - 1][*i_Column].type,
@@ -931,10 +939,6 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 	} else if (ptSource[*i_Row][*i_Column].type == 3) { // if that cell has a tree    /*there is no conflict , and check other movements*/
 
-#ifdef DEBUG
-		printf("Processing tree  cell : row - %d | column = %d \n", *i_Row,
-				*i_Column);
-#endif
 		bool l_bUperSqchance = false;
 		bool l_bRightSqchance = false;
 		bool l_bDownSqchance = false;
@@ -952,7 +956,7 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 				ptSource))) {
 			l_bLeftSqchance = true;
 			l_iLeftBreadingPeriod =
-					ptSource[*i_Row][*i_Column - 1].breeding_period;
+					(*(ptSource + *i_Row) + *i_Column - 1)->breeding_period;
 			++l_iCounter;
 		}
 		l_nextCell = *i_Column + 1;
@@ -961,7 +965,7 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 			l_bRightSqchance = true;
 
 			l_iRightBreadingPeriod =
-					ptSource[*i_Row][*i_Column + 1].breeding_period;
+					(*(ptSource + *i_Row) + *i_Column + 1)->breeding_period;
 			++l_iCounter;
 		}
 		l_nextCell = *i_Row + 1;
@@ -969,7 +973,7 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 				i_Column, ptSource))) {
 			l_bDownSqchance = true;
 			l_iDownBreadingPeriod =
-					ptSource[*i_Row + 1][*i_Column].breeding_period;
+					(*(ptSource + *i_Row + 1) + *i_Column)->breeding_period;
 			++l_iCounter;
 		}
 		l_nextCell = *i_Row - 1;
@@ -977,7 +981,7 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 				i_Column, ptSource))) {
 			l_bUperSqchance = true;
 			l_iUpBreadingPeriod =
-					ptSource[*i_Row - 1][*i_Column].breeding_period;
+					(*(ptSource + *i_Row - 1) + *i_Column)->breeding_period;
 			++l_iCounter;
 		}
 		if (l_iCounter >= 1) {
@@ -989,98 +993,41 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 				MAX(l_iDownBreadingPeriod,l_iUpBreadingPeriod);
 				int l_iMaxBreading = MAX(l_interMaxBread1,l_interMaxBread2);
 				//update the cell with these parameters
-				ptDst[*i_Row][*i_Column].type = 5;
-				ptDst[*i_Row][*i_Column].starvation_period = 0;
-				ptDst[*i_Row][*i_Column].breeding_period = l_iMaxBreading;
-				ptDst[*i_Row][*i_Column].isUpdated = true;
+				(*(ptDst + *i_Row) + *i_Column)->type = 5;
+				(*(ptDst + *i_Row) + *i_Column)->starvation_period = 0;
+				(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+						l_iMaxBreading;
+				(*(ptDst + *i_Row) + *i_Column)->isUpdated = true;
 			}
-			if (l_bUperSqchance) {
-				world *ptTempWorld = *(ptSource + *i_Row - 1) + *i_Column;
-				world *ptDestWorld = *(ptDst + *i_Row - 1) + *i_Column;
-				if (ptTempWorld->breeding_period == 0) {
-					if (ptTempWorld->type == 5)
-						ptDestWorld->type = 5;
-					else
-						ptDestWorld->type = 2;
-					ptDestWorld->starvation_period = 0;
-					ptDestWorld->breeding_period = l_iSquirrelBP;
-					ptDestWorld->isUpdated = true;
-				} else {
-					ptDst[*i_Row][*i_Column].type = 5;
-					ptDst[*i_Row][*i_Column].starvation_period = 0;
-					ptDst[*i_Row][*i_Column].breeding_period = l_iSquirrelBP;
-					ptDst[*i_Row][*i_Column].isUpdated = true;
 
-				}
-				ptDestWorld->isUpdated = true;
+			if (l_bUperSqchance) {
+				l_nextCell = *i_Row - 1;
+				fnTreeCellUpdate(ptSource, ptDst, &l_nextCell, i_Column, i_Row,
+						i_Column);
+
 			}
 			if (l_bRightSqchance) {
-				world *ptTempWorld = *(ptSource + *i_Row) + *i_Column + 1;
-				world *ptDestWorld = *(ptDst + *i_Row) + *i_Column + 1;
-				if (ptTempWorld->breeding_period == 0) {
-					if (ptTempWorld->type == 5)
-						ptDestWorld->type = 5;
-					else
-						ptDestWorld->type = 2;
-					ptDestWorld->starvation_period = 0;
-					ptDestWorld->breeding_period = l_iSquirrelBP;
-					ptDestWorld->isUpdated = true;
-				} else {
-					ptDst[*i_Row][*i_Column].type = 5;
-					ptDst[*i_Row][*i_Column].starvation_period = 0;
-					ptDst[*i_Row][*i_Column].breeding_period = l_iSquirrelBP;
-					ptDst[*i_Row][*i_Column].isUpdated = true;
+				l_nextCell = *i_Column + 1;
+				fnTreeCellUpdate(ptSource, ptDst, i_Row, &l_nextCell, i_Row,
+						i_Column);
 
-				}
-				ptDestWorld->isUpdated = true;
 			}
 
 			if (l_bDownSqchance) {
-				world *ptTempWorld = *(ptSource + *i_Row + 1) + *i_Column;
-				world *ptDestWorld = *(ptDst + *i_Row + 1) + *i_Column;
-				if (ptTempWorld->breeding_period == 0) {
-					if (ptTempWorld->type == 5)
-						ptDestWorld->type = 5;
-					else
-						ptDestWorld->type = 2;
-					ptDestWorld->starvation_period = 0;
-					ptDestWorld->breeding_period = l_iSquirrelBP;
-					ptDestWorld->isUpdated = true;
-				} else {
-					ptDst[*i_Row][*i_Column].type = 5;
-					ptDst[*i_Row][*i_Column].starvation_period = 0;
-					ptDst[*i_Row][*i_Column].breeding_period = l_iSquirrelBP;
-					ptDst[*i_Row][*i_Column].isUpdated = true;
-
-				}
-				ptDestWorld->isUpdated = true;
+				l_nextCell = *i_Row + 1;
+				fnTreeCellUpdate(ptSource, ptDst, &l_nextCell, i_Column, i_Row,
+						i_Column);
 			}
 
 			if (l_bLeftSqchance) {
-				world *ptTempWorld = *(ptSource + *i_Row) + *i_Column - 1;
-				world *ptDestWorld = *(ptDst + *i_Row) + *i_Column - 1;
-				if (ptTempWorld->breeding_period == 0) {
-					if (ptTempWorld->type == 5)
-						ptDestWorld->type = 5;
-					else
-						ptDestWorld->type = 2;
-					ptDestWorld->starvation_period = 0;
-					ptDestWorld->breeding_period = l_iSquirrelBP;
-					ptDestWorld->isUpdated = true;
-				} else {
-					ptDst[*i_Row][*i_Column].type = 5;
-					ptDst[*i_Row][*i_Column].starvation_period = 0;
-					ptDst[*i_Row][*i_Column].breeding_period = l_iSquirrelBP;
-					ptDst[*i_Row][*i_Column].isUpdated = true;
-				}
-				ptDestWorld->isUpdated = true;
+				l_nextCell = *i_Column - 1;
+				fnTreeCellUpdate(ptSource, ptDst, i_Row, &l_nextCell, i_Row,
+						i_Column);
+
 			}
 		}
 	} else if (ptSource[*i_Row][*i_Column].type == 2) { // if that cell has a squirrel  , other wolf come and eat*/
-#ifdef DEBUG
-			printf("Processing squirrel  cell : row - %d | column = %d \n", *i_Row,
-					*i_Column);
-#endif
+
 		bool l_bUperWolfchance = false;
 		bool l_bRightWolfchance = false;
 		bool l_bDownWolfchance = false;
@@ -1105,10 +1052,10 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 			l_bLeftWolfchance = true;
 			l_iLeftStarvationPeriod =
-					ptSource[*i_Row][*i_Column - 1].starvation_period;
+					(*(ptSource + *i_Row) + *i_Column - 1)->starvation_period;
 			l_iTotalStarvationPeriod += l_iLeftStarvationPeriod;
 			l_iLeftBreadingPeriod =
-					ptSource[*i_Row][*i_Column - 1].breeding_period;
+					(*(ptSource + *i_Row) + *i_Column - 1)->breeding_period;
 			++l_iCounter;
 		}
 		l_nextCell = *i_Column + 1;
@@ -1118,10 +1065,10 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 			l_bRightWolfchance = true;
 			l_iRightStarvationPeriod =
-					ptSource[*i_Row][*i_Column + 1].starvation_period;
+					(*(ptSource + *i_Row) + *i_Column + 1)->starvation_period;
 			l_iTotalStarvationPeriod += l_iRightStarvationPeriod;
 			l_iRightBreadingPeriod =
-					ptSource[*i_Row][*i_Column + 1].breeding_period;
+					(*(ptSource + *i_Row) + *i_Column + 1)->breeding_period;
 			++l_iCounter;
 		}
 		l_nextCell = *i_Row + 1;
@@ -1131,10 +1078,10 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 			l_bDownWolfchance = true;
 			l_iDownStartvationPeriod =
-					ptSource[*i_Row + 1][*i_Column].starvation_period;
+					(*(ptSource + *i_Row + 1) + *i_Column)->starvation_period;
 			l_iTotalStarvationPeriod += l_iDownStartvationPeriod;
 			l_iDownBreadingPeriod =
-					ptSource[*i_Row + 1][*i_Column].breeding_period;
+					(*(ptSource + *i_Row + 1) + *i_Column)->breeding_period;
 			++l_iCounter;
 		}
 		l_nextCell = *i_Row - 1;
@@ -1144,10 +1091,10 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 			l_bUperWolfchance = true;
 			l_iUpStarvationPeriod =
-					ptSource[*i_Row - 1][*i_Column].starvation_period;
+					(*(ptSource + *i_Row - 1) + *i_Column)->starvation_period;
 			l_iTotalStarvationPeriod += l_iUpStarvationPeriod;
 			l_iUpBreadingPeriod =
-					ptSource[*i_Row - 1][*i_Column].breeding_period;
+					(*(ptSource + *i_Row - 1) + *i_Column)->breeding_period;
 			++l_iCounter;
 		}
 
@@ -1171,85 +1118,60 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 				int l_iMaxBreading = MAX(l_interMaxBread1,
 						l_interMaxBread2);
 //update the cell with these parameters
-				ptDst[*i_Row][*i_Column].type = 1;
-				ptDst[*i_Row][*i_Column].starvation_period = l_iMaxStarvation;
-				ptDst[*i_Row][*i_Column].breeding_period = l_iMaxBreading;
-				ptDst[*i_Row][*i_Column].isUpdated = true;
+				(*(ptDst + *i_Row) + *i_Column)->type = 1;
+				(*(ptDst + *i_Row) + *i_Column)->starvation_period =
+						l_iMaxStarvation;
+				(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+						l_iMaxBreading;
+				(*(ptDst + *i_Row) + *i_Column)->isUpdated = true;
 			} else {
 
 				if (l_iMaxStarvation == l_iLeftStarvationPeriod) {
-					ptDst[*i_Row][*i_Column].breeding_period =
-							ptSource[*i_Row][*i_Column - 1].breeding_period;
+					(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+							(*(ptSource + *i_Row) + *i_Column - 1)->breeding_period;
 				} else if (l_iMaxStarvation == l_iRightStarvationPeriod) {
-					ptDst[*i_Row][*i_Column].breeding_period =
-							ptSource[*i_Row][*i_Column + 1].breeding_period;
+					(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+							(*(ptSource + *i_Row) + *i_Column + 1)->breeding_period;
 
 				} else if (l_iMaxStarvation == l_iDownStartvationPeriod) {
-					ptDst[*i_Row][*i_Column].breeding_period = ptSource[*i_Row
-							+ 1][*i_Column].breeding_period;
+					(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+							(*(ptSource + *i_Row + 1) + *i_Column)->breeding_period;
 
 				} else {
-					ptDst[*i_Row][*i_Column].breeding_period = ptSource[*i_Row
-							- 1][*i_Column].breeding_period;
+					(*(ptDst + *i_Row) + *i_Column)->breeding_period =
+							(*(ptSource + *i_Row - 1) + *i_Column)->breeding_period;
 				}
 
 			}
-			world *pt_TempWorld;
-			world *ptDestWorld;
+
 			if (l_bUperWolfchance) {
-				pt_TempWorld = *(ptSource + *i_Row - 1) + *i_Column;
-				ptDestWorld = *(ptDst + *i_Row - 1) + *i_Column;
-				if (pt_TempWorld->breeding_period == 0) {
-					ptDestWorld->type = 1;
-					ptDestWorld->starvation_period = l_iWolfSP;
-					ptDestWorld->breeding_period = l_iWolfBP;
-					ptDestWorld->isUpdated = true;
-				}
-				ptDestWorld->isUpdated = true;
+
+				l_nextCell = *i_Row - 1;
+				fnSingleUpdatetoCell(ptSource, ptDst, &l_nextCell, i_Column);
+
 			}
 			if (l_bRightWolfchance) {
-				pt_TempWorld = *(ptSource + *i_Row) + *i_Column + 1;
-				ptDestWorld = *(ptDst + *i_Row) + *i_Column + 1;
-				if (pt_TempWorld->breeding_period == 0) {
+				l_nextCell = *i_Column + 1;
+				fnSingleUpdatetoCell(ptSource, ptDst, i_Row, &l_nextCell);
 
-					ptDestWorld->type = 1;
-					ptDestWorld->starvation_period = l_iWolfSP;
-					ptDestWorld->breeding_period = l_iWolfBP;
-					ptDestWorld->isUpdated = true;
-				}
-				ptDestWorld->isUpdated = true;
 			}
 
 			if (l_bDownWolfchance) {
-				pt_TempWorld = *(ptSource + *i_Row + 1) + *i_Column;
-				ptDestWorld = *(ptDst + *i_Row + 1) + *i_Column;
-				if (pt_TempWorld->breeding_period == 0) {
+				l_nextCell = *i_Row + 1;
+				fnSingleUpdatetoCell(ptSource, ptDst, &l_nextCell, i_Column);
 
-					ptDestWorld->type = 1;
-					ptDestWorld->starvation_period = l_iWolfSP;
-					ptDestWorld->breeding_period = l_iWolfBP;
-					ptDestWorld->isUpdated = true;
-				}
-				ptDestWorld->isUpdated = true;
 			}
 
 			if (l_bLeftWolfchance) {
-				pt_TempWorld = *(ptSource + *i_Row) + *i_Column - 1;
-				ptDestWorld = *(ptDst + *i_Row) + *i_Column - 1;
-				if (pt_TempWorld->breeding_period == 0) {
+				l_nextCell = *i_Column - 1;
+				fnSingleUpdatetoCell(ptSource, ptDst, i_Row, &l_nextCell);
 
-					ptDestWorld->type = 1;
-					ptDestWorld->starvation_period = l_iWolfSP;
-					ptDestWorld->breeding_period = l_iWolfBP;
-					ptDestWorld->isUpdated = true;
-				}
-				ptDestWorld->isUpdated = true;
 			}
 		}
 	}
 }
-
-/*-----------------------------------------------------------------------------------------------------*/
+/* The name of the function clearly states copy the world , indeed , it will copy from mirror world and update the source world
+ * then flush the mirror world , basically , preparing mirror world for next round */
 void fnCopyWorld(world **src_World, world **dst_World) {
 	int m, n;
 
@@ -1272,6 +1194,7 @@ void fnCopyWorld(world **src_World, world **dst_World) {
 
 }
 
+/* Once read all the coordinates from input file, it will create new world according to input size */
 void fnInitiateWorld() {
 	pt_SourceWorld = (world **) malloc(sizeof(world) * g_GridSize);
 
@@ -1294,6 +1217,8 @@ void fnInitiateWorld() {
 		memset(pt_DestinationWorld[m], 0, sizeof(world) * g_GridSize);
 
 }
+
+
 void fnLoadtheGeneration(char *_pFileName, int _iWolfBP, int _iSquirrelBP,
 		int _iWolfSP) {
 
@@ -1323,9 +1248,7 @@ void fnLoadtheGeneration(char *_pFileName, int _iWolfBP, int _iSquirrelBP,
 			tok = strtok(l_sTem, " ");
 
 			while (tok) {
-#ifdef DEBUG
-				printf("Token: %s--counter - %d\n", tok, l_iCounter);
-#endif
+
 				if (l_iCounter == 0)
 					l_yCor = atoi(tok);
 				if (l_iCounter == 1)
@@ -1346,9 +1269,7 @@ void fnLoadtheGeneration(char *_pFileName, int _iWolfBP, int _iSquirrelBP,
 				++l_iCounter;
 			}
 			if (l_xCor <= g_GridSize - 1 && l_yCor <= g_GridSize - 1) {
-#ifdef DEBUG
-				printf("x cor = %d | y cor = %d \n", l_xCor, l_yCor);
-#endif
+
 				pt_SourceWorld[l_yCor][l_xCor].type = l_Type;
 				switch (l_Type) {
 				case 1: /*wolf*/
@@ -1419,7 +1340,7 @@ void fnProcessWorld() {
 
 		fnCopyWorld(pt_SourceWorld, pt_DestinationWorld);
 
-		//fnDumpTheOutput(&l_iGenCounter, pt_SourceWorld);
+// every generation reduce the starvation period and breeding period
 		if (l_iGenCounter < g_iNumberofGen) {
 			int l_iRow;
 			int l_iColumn;
@@ -1437,13 +1358,6 @@ void fnProcessWorld() {
 							l_ptWorld->breeding_period = 0;
 
 						}
-#ifdef DEBUG
-						printf(
-								" %d Generation finished wolf breeding period = %d | st period =%d |row =%d | Column =%d\n",
-								l_iGenCounter, l_ptWorld->breeding_period,
-								l_ptWorld->starvation_period, l_iRow,
-								l_iColumn);
-#endif
 					} else if ((l_ptWorld->type == 2)
 							|| (l_ptWorld->type == 5)) {
 						if (l_ptWorld->breeding_period != 0)
@@ -1462,7 +1376,7 @@ void fnProcessWorld() {
 	printf("Total serial code processing time - %.16g \n",
 			(l_clkEndtime - l_clkStartTime));
 	fnPrintWorld(pt_SourceWorld);
-//	/fnPrintWorld();
+	fnDumpTheOutput(pt_SourceWorld, &g_iNumberofGen);
 
 }
 
