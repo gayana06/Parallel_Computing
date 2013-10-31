@@ -14,10 +14,12 @@
 #include <string.h>
 #include <time.h>
 
-#define PRINT_NORMAL
+//#define PRINT_NORMAL
 //#define PRINT_CORDINATE
 //#define PRINT_DEATIL
-#define DEFINE_VAR
+//#define DEFINE_VAR
+
+
 
 #define WOLF "w"
 #define SQUIRREL "s"
@@ -41,9 +43,9 @@ typedef struct world {
 world **pt_SourceWorld;
 world **pt_DestinationWorld;
 FILE *gf_DumpFile;
-void fnDumpTheOutput(world **ptPrintWorld, int *pGeneration) {
+void fnDumpTheOutput(world **ptPrintWorld, int *pGridSize) {
 	char zFilebuf[256];
-	snprintf(zFilebuf, sizeof(zFilebuf), "World_%d.out", *pGeneration);
+	snprintf(zFilebuf, sizeof(zFilebuf), "World_%d.out", *pGridSize);
 	gf_DumpFile = fopen(zFilebuf, "a+");
 	if (gf_DumpFile == NULL) {
 		printf("Unable to open the file.\n");
@@ -60,24 +62,24 @@ void fnDumpTheOutput(world **ptPrintWorld, int *pGeneration) {
 			l_ptWorld = *(ptPrintWorld + row) + columns;
 			switch (l_ptWorld->type) {
 			case 1: {
-				fprintf(gf_DumpFile, "%d %d w \n", row, columns);
+				fprintf(gf_DumpFile, "%d %d w\n", row, columns);
 
 			}
 				break;
 			case 2: {
-				fprintf(gf_DumpFile, "%d %d s \n", row, columns);
+				fprintf(gf_DumpFile, "%d %d s\n", row, columns);
 			}
 				break;
 			case 3: {
-				fprintf(gf_DumpFile, "%d %d t \n", row, columns);
+				fprintf(gf_DumpFile, "%d %d t\n", row, columns);
 			}
 				break;
 			case 4: {
-				fprintf(gf_DumpFile, "%d %d x\n", row, columns);
+				fprintf(gf_DumpFile, "%d %d i\n", row, columns);
 			}
 				break;
 			case 5: {
-				fprintf(gf_DumpFile, "%d %d $ \n", row, columns);
+				fprintf(gf_DumpFile, "%d %d $\n", row, columns);
 			}
 				break;
 
@@ -229,12 +231,13 @@ bool fnPossibleMovementToSameCell(int *i_Row, int *i_Column, int *_iActualRow,
 		int *ptTempRow = i_Row;
 		int *ptTempColumn = i_Column;
 
-		if (l_ptWorld->type == 0 || l_ptWorld->type == 4) // if next cell is return false, nothing is gonna happen
-				{
+		switch (l_ptWorld->type) {
+		case 0:
+		case 4:
 			return false;
-		}
-		if (l_ptWorld->type == 1) // if it is wolf , process is different, because we have to consider only more than one squirrel
-				{
+
+		case 1: // if it is wolf , process is different, because we have to consider only more than one squirrel
+		{
 			if (*ptTempRow - 1 >= 0) {
 				if ((*(pt_Whichworld + *ptTempRow - 1) + *ptTempColumn)->type
 						== 2) {
@@ -368,8 +371,10 @@ bool fnPossibleMovementToSameCell(int *i_Row, int *i_Column, int *_iActualRow,
 				}
 			}
 			ptTempColumn = i_Column;
-		} else if (l_ptWorld->type == 2 || l_ptWorld->type == 5) // if it is squ , process is different
-				{
+		}
+			break;
+		case 2:
+		case 5: {
 			world * ptTemp;
 
 			if (*ptTempRow - 1 >= 0) {
@@ -443,6 +448,10 @@ bool fnPossibleMovementToSameCell(int *i_Row, int *i_Column, int *_iActualRow,
 			}
 
 		}
+			break;
+		default:
+			break;
+		}
 
 		if (l_iNumberofPossiblemovement != 0) {
 			int l_iCValue = *i_Row * g_GridSize + *i_Column;
@@ -495,7 +504,8 @@ void fnupdateCell(int *_iBreedingPeriod, int *_iStarvationPeriod, int *_iType,
 		world **pt_srcWorld, world **pt_DstWorld) {
 	world *l_ptSrcWorld = *(pt_srcWorld + *i_Row) + *i_Column;
 	world *l_ptDstWorldCell = *(pt_DstWorld + *_iUpdateRow) + *_iUpdateColumn;
-	if (*_iType == 1) {
+	switch (*_iType) {
+	case 1: {
 		bool _isBreed = false;
 		if (l_ptSrcWorld->breeding_period == 0) {
 			(*(pt_DstWorld + *i_Row) + *i_Column)->type = *_iType;
@@ -516,7 +526,8 @@ void fnupdateCell(int *_iBreedingPeriod, int *_iStarvationPeriod, int *_iType,
 			l_ptDstWorldCell->breeding_period = *_iBreedingPeriod;
 
 	}
-	if (*_iType == 2) {
+		break;
+	case 2: {
 		bool _isBreed = false;
 		if (l_ptSrcWorld->breeding_period == 0) {
 
@@ -537,7 +548,8 @@ void fnupdateCell(int *_iBreedingPeriod, int *_iStarvationPeriod, int *_iType,
 		else
 			l_ptDstWorldCell->breeding_period = *_iBreedingPeriod;
 	}
-	if (*_iType == 5) {
+		break;
+	case 5: {
 		bool _isBreed = false;
 		if (l_ptSrcWorld->breeding_period == 0) {
 			(*(pt_DstWorld + *i_Row) + *i_Column)->type = *_iType;
@@ -558,6 +570,10 @@ void fnupdateCell(int *_iBreedingPeriod, int *_iStarvationPeriod, int *_iType,
 			l_ptDstWorldCell->breeding_period = l_iSquirrelBP;
 		else
 			l_ptDstWorldCell->breeding_period = *_iBreedingPeriod;
+	}
+		break;
+	default:
+		break;
 	}
 
 }
@@ -618,12 +634,11 @@ void fnTreeCellUpdate(world **ptSource, world **ptDst, int *i_Row,
 void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 	world *l_ptWorld = *(ptSource + *i_Row) + *i_Column;
-	bool isConflict = false;
 	int l_nextCell = 0;
-	if (l_ptWorld->type == 0)
-		isConflict = true;
-	if (isConflict) {
 
+	switch (l_ptWorld->type) {
+
+	case 0: {
 		int l_iWolfType = 1;
 		int l_SquirrelType = 0;
 		bool l_bUperWolfchance = false;
@@ -937,7 +952,9 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 		}
 
-	} else if (ptSource[*i_Row][*i_Column].type == 3) { // if that cell has a tree    /*there is no conflict , and check other movements*/
+	}
+		break;
+	case 3: { // if that cell has a tree    /*there is no conflict , and check other movements*/
 
 		bool l_bUperSqchance = false;
 		bool l_bRightSqchance = false;
@@ -1026,7 +1043,9 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 			}
 		}
-	} else if (ptSource[*i_Row][*i_Column].type == 2) { // if that cell has a squirrel  , other wolf come and eat*/
+	}
+		break;
+	case 2: { // if that cell has a squirrel  , other wolf come and eat*/
 
 		bool l_bUperWolfchance = false;
 		bool l_bRightWolfchance = false;
@@ -1169,29 +1188,10 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 			}
 		}
 	}
-}
-/* The name of the function clearly states copy the world , indeed , it will copy from mirror world and update the source world
- * then flush the mirror world , basically , preparing mirror world for next round */
-void fnCopyWorld(world **src_World, world **dst_World) {
-	int m, n;
-
-	for (m = 0; m < g_GridSize; ++m) {
-		for (n = 0; n < g_GridSize; ++n) {
-			if (dst_World[m][n].isUpdated) {
-				src_World[m][n].type = dst_World[m][n].type;
-				src_World[m][n].breeding_period =
-						dst_World[m][n].breeding_period;
-				src_World[m][n].starvation_period =
-						dst_World[m][n].starvation_period;
-				src_World[m][n].isUpdated = false;
-
-			}
-
-		}
+		break;
+	default:
+		break;
 	}
-	for (m = 0; m < g_GridSize; ++m)
-		memset(dst_World[m], 0, sizeof(world) * g_GridSize);
-
 }
 
 /* Once read all the coordinates from input file, it will create new world according to input size */
@@ -1217,7 +1217,6 @@ void fnInitiateWorld() {
 		memset(pt_DestinationWorld[m], 0, sizeof(world) * g_GridSize);
 
 }
-
 
 void fnLoadtheGeneration(char *_pFileName, int _iWolfBP, int _iSquirrelBP,
 		int _iWolfSP) {
@@ -1304,6 +1303,26 @@ void fnLoadtheGeneration(char *_pFileName, int _iWolfBP, int _iSquirrelBP,
 	}
 	/* Load the generation in to world*/
 }
+
+/* The name of the function clearly states copy the world , indeed , it will copy from mirror world and update the source world
+ * then flush the mirror world , basically , preparing mirror world for next round */
+
+void fnCopyWorld(world **src_World, world **dst_World) {
+	int m, n;
+	// every element is totally independent so, we can parallelize main for loop
+	for (m = 0; m < g_GridSize; ++m) {
+		for (n = 0; n < g_GridSize; ++n) {
+			world *ptDstTemp = *(dst_World + m) + n;
+			if (ptDstTemp->isUpdated) {
+				world *ptSrcTemp = *(src_World + m) + n;
+				memcpy(ptSrcTemp, ptDstTemp, sizeof(world));
+				memset(ptDstTemp,0,sizeof(world));
+			}
+
+		}
+	}
+
+}
 void fnProcessWorld() {
 	int i;
 
@@ -1376,7 +1395,7 @@ void fnProcessWorld() {
 	printf("Total serial code processing time - %.16g \n",
 			(l_clkEndtime - l_clkStartTime));
 	fnPrintWorld(pt_SourceWorld);
-	fnDumpTheOutput(pt_SourceWorld, &g_iNumberofGen);
+	fnDumpTheOutput(pt_SourceWorld, &g_GridSize);
 
 }
 
