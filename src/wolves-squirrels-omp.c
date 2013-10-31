@@ -1197,26 +1197,35 @@ void fnUpdateCell(int *i_Row, int *i_Column, world **ptSource, world **ptDst) {
 
 /* Once read all the coordinates from input file, it will create new world according to input size */
 void fnInitiateWorld() {
-	pt_SourceWorld = (world **) malloc(sizeof(world) * g_GridSize);
 
 	//Allocating memory for the columns of three matrices.
+
+//#pragma omp parallel sections
+//	{
+//#pragma omp section
+	//{
 	int i;
+	pt_SourceWorld = (world **) malloc(sizeof(world) * g_GridSize);
+
 	for (i = 0; i < g_GridSize; i++) {
 		pt_SourceWorld[i] = (world *) malloc(sizeof(world) * g_GridSize);
 	}
-
 	int m;
 	for (m = 0; m < g_GridSize; ++m)
 		memset(pt_SourceWorld[m], 0, sizeof(world) * g_GridSize);
-
+	//}
+//#pragma omp section
+	//{
+	int j;
 	pt_DestinationWorld = (world **) malloc(sizeof(world) * g_GridSize);
-	for (i = 0; i < g_GridSize; i++) {
-		pt_DestinationWorld[i] = (world *) malloc(sizeof(world) * g_GridSize);
+	for (j = 0; j < g_GridSize; j++) {
+		pt_DestinationWorld[j] = (world *) malloc(sizeof(world) * g_GridSize);
 	}
-
-	for (m = 0; m < g_GridSize; ++m)
-		memset(pt_DestinationWorld[m], 0, sizeof(world) * g_GridSize);
-
+	int m1;
+	for (m1 = 0; m1 < g_GridSize; ++m1)
+		memset(pt_DestinationWorld[m1], 0, sizeof(world) * g_GridSize);
+	//}
+	//}
 }
 
 void fnLoadtheGeneration(char *_pFileName, int _iWolfBP, int _iSquirrelBP,
@@ -1318,7 +1327,7 @@ void fnCopyWorld(world **src_World, world **dst_World) {
 			if (ptDstTemp->isUpdated) {
 				world *ptSrcTemp = *(src_World + m) + n;
 				memcpy(ptSrcTemp, ptDstTemp, sizeof(world));
-				memset(ptDstTemp,0,sizeof(world));
+				memset(ptDstTemp, 0, sizeof(world));
 			}
 
 		}
