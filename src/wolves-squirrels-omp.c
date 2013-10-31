@@ -20,7 +20,7 @@
 //#define PRINT_DEATIL
 #define DEFINE_VAR
 
-#define NUMBER_OF_THREAD 4
+#define NUMBER_OF_THREAD 2
 
 #define WOLF "w"
 #define SQUIRREL "s"
@@ -1300,14 +1300,18 @@ void fnCopyWorld(world **src_World, world **dst_World) {
 				src_World[m][n].starvation_period =
 						dst_World[m][n].starvation_period;
 				src_World[m][n].isUpdated = false;
+                                dst_World[m][n].isUpdated = false;
 
 			}
 
 		}
 	}
+
+/*
 #pragma omp parallel for private(m)
 	for (m = 0; m < g_GridSize; ++m)
 		memset(dst_World[m], 0, sizeof(world) * g_GridSize);
+*/
 
 }
 void fnProcessWorld() {
