@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <time.h>
 #include <omp.h>
 
 //#define PRINT_NORMAL
@@ -121,7 +120,7 @@ void fnPrintWorld(world **ptPrintWorld) {
 				}
 				break;
 				case 4: {
-					printf("(%d,%d,x)<%d,%d>", l_ptWorld->breeding_period,
+					printf("(%d,%d,i)<%d,%d>", l_ptWorld->breeding_period,
 							l_ptWorld->starvation_period, row, columns);
 				}
 				break;
@@ -189,7 +188,7 @@ void fnPrintWorld(world **ptPrintWorld) {
 				}
 				break;
 				case 4: {
-					printf(" <x> ");
+					printf(" <i> ");
 				}
 				break;
 				case 5: {
